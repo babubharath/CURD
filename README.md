@@ -1,8 +1,8 @@
-CRUD Operations Using Node.js, Express.js and MySQL
+CRUD Operations Using Node.js, Express.js and postgreSQL
 
 📌 Project Overview
 
-This project is a simple CRUD (Create, Read, Update, Delete) application developed using Node.js, Express.js and MySQL.
+This project is a simple CRUD (Create, Read, Update, Delete) application developed using Node.js, Express.js and postgreSQL.
 
 It provides REST API endpoints to insert, retrieve, update and delete student records containing an ID, name and mark.
 
@@ -28,7 +28,7 @@ Node.js
 
 Express.js
 
-MySQL
+postgreSQL
 
 Postman
 
