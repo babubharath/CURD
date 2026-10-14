@@ -1,302 +1,235 @@
 
-const express = require("express");
-const { Pool } = require("pg");
 require("dotenv").config();
 
+const express = require("express");
+const prisma = require("./prismaClient");
+
 const app = express();
+
 app.use(express.json());
 
 
-const con = new Pool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT)
-});
-
-con.connect()
-    .then(client => {
-        console.log("Connected to PostgreSQL");
-        client.release();
-    })
-    .catch(err => console.error("Database connection error:", err.message));
-
-
 app.post("/user", async (req, res, next) => {
-    try {
-        const { name, mark } = req.body;
+  try {
+    const { name, mark } = req.body;
 
-        if (!name || (mark != null && !Number.isInteger(mark))) {
-            return res.status(400).json({
-                message: "Valid name and integer mark are required"
-            });
-        }
+    const user = await prisma.mytable.create({
+      data: { name, mark: Number(mark) }
+    });
 
-        const result = await con.query(
-            "INSERT INTO mytable (name, mark) VALUES ($1, $2) RETURNING *",
-            [name, mark ?? null]
-        );
-
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        next(err);
-    }
+    res.status(201).json(user);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.get("/user", async (req, res, next) => {
-    try {
-        const result = await con.query(
-            "SELECT * FROM mytable ORDER BY id"
-        );
-        res.json(result.rows);
-    } catch (err) {
-        next(err);
-    }
+  try {
+    const users = await prisma.mytable.findMany();
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.get("/user/:id", async (req, res, next) => {
-    try {
-        const id = req.params.id;
+  try {
+    const id = Number(req.params.id);
 
-        if (!/^[1-9]\d*$/.test(id)) {
-            return res.status(400).json({ message: "Invalid user ID" });
-        }
-
-        const result = await con.query(
-            "SELECT * FROM mytable WHERE id = $1",
-            [id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
     }
+
+    const user = await prisma.mytable.findUnique({
+      where: { id }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.put("/user/:id", async (req, res, next) => {
-    try {
-        const id = req.params.id;
-        const { name, mark } = req.body;
+  try {
+    const id = Number(req.params.id);
+    const { name, mark } = req.body;
 
-        if (!/^[1-9]\d*$/.test(id)) {
-            return res.status(400).json({ message: "Invalid user ID" });
-        }
-
-        if (!name || (mark != null && !Number.isInteger(mark))) {
-            return res.status(400).json({
-                message: "Valid name and integer mark are required"
-            });
-        }
-
-        const result = await con.query(
-            "UPDATE mytable SET name = $1, mark = $2 WHERE id = $3 RETURNING *",
-            [name, mark ?? null, id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
     }
+
+    const user = await prisma.mytable.update({
+      where: { id },
+      data: { name, mark: Number(mark) }
+    });
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
-app.patch("/user/mark/:id", async (req, res, next) => {
-    try {
-        const id = req.params.id;
-        const { mark } = req.body;
+app.patch("/user/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { mark } = req.body;
 
-        if (!/^[1-9]\d*$/.test(id)) {
-            return res.status(400).json({ message: "Invalid user ID" });
-        }
-
-        if (!Number.isInteger(mark)) {
-            return res.status(400).json({
-                message: "Mark must be an integer"
-            });
-        }
-
-        const result = await con.query(
-            "UPDATE mytable SET mark = $1 WHERE id = $2 RETURNING *",
-            [mark, id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
     }
+
+    const user = await prisma.mytable.update({
+      where: { id },
+      data: { mark: Number(mark) }
+    });
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.delete("/user/:id", async (req, res, next) => {
-    try {
-        const id = req.params.id;
+  try {
+    const id = Number(req.params.id);
 
-        if (!/^[1-9]\d*$/.test(id)) {
-            return res.status(400).json({ message: "Invalid user ID" });
-        }
-
-        const result = await con.query(
-            "DELETE FROM mytable WHERE id = $1 RETURNING *",
-            [id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        res.json({ message: "User deleted successfully" });
-    } catch (err) {
-        next(err);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
     }
+
+    const user = await prisma.mytable.delete({
+      where: { id }
+    });
+
+    res.json({
+      message: "User deleted successfully",
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 
+
 app.post("/client", async (req, res, next) => {
-    try {
-        const { clientname } = req.body;
+  try {
+    const { clientname } = req.body;
 
-        if (!clientname) {
-            return res.status(400).json({
-                message: "Client name is required"
-            });
-        }
+    const client = await prisma.client.create({
+      data: { clientname }
+    });
 
-        const result = await con.query(
-            'INSERT INTO "Client" (clientname) VALUES ($1) RETURNING *',
-            [clientname]
-        );
-
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        next(err);
-    }
+    res.status(201).json(client);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.get("/client", async (req, res, next) => {
-    try {
-        const result = await con.query(
-            'SELECT * FROM "Client" ORDER BY clientname'
-        );
-        res.json(result.rows);
-    } catch (err) {
-        next(err);
-    }
+  try {
+    const clients = await prisma.client.findMany();
+    res.json(clients);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.get("/client/:clientid", async (req, res, next) => {
-    try {
-        const clientid = req.params.clientid;
+  try {
+    const { clientid } = req.params;
 
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientid)) {
-            return res.status(400).json({ message: "Invalid client UUID" });
-        }
+    const client = await prisma.client.findUnique({
+      where: { clientid }
+    });
 
-        const result = await con.query(
-            'SELECT * FROM "Client" WHERE clientid = $1',
-            [clientid]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "Client not found" });
-        }
-
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
+    if (!client) {
+      return res.status(404).json({ message: "Client not found" });
     }
+
+    res.json(client);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.put("/client/:clientid", async (req, res, next) => {
-    try {
-        const clientid = req.params.clientid;
-        const { clientname } = req.body;
+  try {
+    const { clientid } = req.params;
+    const { clientname } = req.body;
 
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientid)) {
-            return res.status(400).json({ message: "Invalid client UUID" });
-        }
+    const client = await prisma.client.update({
+      where: { clientid },
+      data: { clientname }
+    });
 
-        if (!clientname) {
-            return res.status(400).json({
-                message: "Client name is required"
-            });
-        }
-
-        const result = await con.query(
-            'UPDATE "Client" SET clientname = $1 WHERE clientid = $2 RETURNING *',
-            [clientname, clientid]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "Client not found" });
-        }
-
-        res.json(result.rows[0]);
-    } catch (err) {
-        next(err);
-    }
+    res.json(client);
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 app.delete("/client/:clientid", async (req, res, next) => {
-    try {
-        const clientid = req.params.clientid;
+  try {
+    const { clientid } = req.params;
 
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientid)) {
-            return res.status(400).json({ message: "Invalid client UUID" });
-        }
+    const client = await prisma.client.delete({
+      where: { clientid }
+    });
 
-        const result = await con.query(
-            'DELETE FROM "Client" WHERE clientid = $1 RETURNING *',
-            [clientid]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "Client not found" });
-        }
-
-        res.json({ message: "Client deleted successfully" });
-    } catch (err) {
-        next(err);
-    }
+    res.json({
+      message: "Client deleted successfully",
+      client
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 
 
 app.use((req, res) => {
-    res.status(404).json({ message: "API route not found" });
-});
-
-app.use((err, req, res, next) => {
-    console.error(err.message);
-
-    if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-        return res.status(400).json({ message: "Invalid JSON body" });
-    }
-
-    res.status(500).json({ message: "Internal server error" });
+  res.status(404).json({ message: "API route not found" });
 });
 
 
 
-app.listen(3000, () => {
-    console.log("Server is running on port 3000");
+app.use((error, req, res, next) => {
+  console.error(error);
+
+  if (error.code === "P2025") {
+    return res.status(404).json({ message: "Record not found" });
+  }
+
+  if (error.code === "P2002") {
+    return res.status(409).json({ message: "Duplicate value" });
+  }
+
+  if (error.code === "P2023") {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+
+  res.status(500).json({ message: "Internal server error" });
+});
+
+
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
