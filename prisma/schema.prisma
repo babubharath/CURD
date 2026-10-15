@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,17 +7,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Mytable {
-  id   Int    @id @default(autoincrement())
-  name String
-  mark Int
-
-  @@map("mytable")
+model mytable {
+  id       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name     String
+  phone    String    @unique
+  email    String    @unique
+  projects project[]
 }
 
-model Client {
-  clientid   String @id @default(uuid()) @db.Uuid
-  clientname String
+model client {
+  id          Int       @id @default(autoincrement())
+  name        String
+  companyname String
+  email       String    @unique
+  phone       String    @unique
+  projects    project[]
+}
 
-  @@map("Client")
+model project {
+  projectid   Int     @id @default(autoincrement())
+  projectname String
+  description String?
+  status      String  @default("Pending")
+
+  userId   String @db.Uuid
+  clientId Int
+
+  employee mytable @relation(fields: [userId], references: [id], onDelete: Restrict)
+  client   client  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
