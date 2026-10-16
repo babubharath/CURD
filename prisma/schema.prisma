@@ -13,6 +13,7 @@ model mytable {
   phone    String    @unique
   email    String    @unique
   projects project[]
+  tasks    Task[]  
 }
 
 model client {
@@ -35,6 +36,18 @@ model project {
 
   employee mytable @relation(fields: [userId], references: [id], onDelete: Restrict)
   client   client  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Task {
+  taskid      Int      @id @default(autoincrement())
+  taskname    String
+  description String?
+  status      String   @default("Pending")
+
+  userId String @db.Uuid
+  employee mytable @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
