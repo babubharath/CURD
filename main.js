@@ -11,6 +11,7 @@ app.use("/user", require("./routes/user"));
 app.use("/client", require("./routes/client"));
 app.use("/project", require("./routes/project"));
 app.use("/task", require("./routes/task"));
+app.use("/ocr", require("./routes/ocr"));
 
 
 // 404 handler
